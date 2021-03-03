@@ -7,6 +7,7 @@ conda install pytorch torchvision torchaudio cudatoolkit=10.1 -c pytorch
 conda install -c conda-forge jupyterlab
 conda install -c conda-forge ipywidgets
 conda install -c conda-forge matplotlib
+conda install -c conda-forge jupyter_nbextensions_configurator
 
 git clone https://github.com/seasonyao/reranking_LM.git
 cd reranking_LM
