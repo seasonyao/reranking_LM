@@ -8,6 +8,7 @@ conda install -c conda-forge jupyterlab
 conda install -c conda-forge ipywidgets
 conda install -c conda-forge matplotlib
 conda install -c conda-forge jupyter_nbextensions_configurator
+conda install pandas
 
 git clone https://github.com/seasonyao/reranking_LM.git
 cd reranking_LM
