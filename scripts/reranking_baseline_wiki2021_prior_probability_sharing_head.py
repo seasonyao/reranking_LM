@@ -21,11 +21,11 @@ from transformers import Trainer, TrainerState, TrainingArguments
 from transformers.utils import logging
 logger = logging.get_logger(__name__)
 
-from rerankGPT2LMHeadModel import rerankGPT2LMHeadModel_exclude_cases_label_not_in_candidates, wiki2021_GPT2Dataset
+from rerankGPT2LMHeadModel import rerankGPT2LMHeadModel_prior_probability_sharing_head, wiki2021_GPT2Dataset
 
-batch_size = 8
+batch_size = 64
 MAX_LEN = 128
-CAN_NUM = 20
+CAN_NUM = 5
 num_of_rerank = 30
 
 # some parameters I cooked up that work reasonably well
@@ -52,11 +52,11 @@ tokenizer = GPT2Tokenizer.from_pretrained('gpt2', pad_token='<|endoftext|>') #gp
 
 
 # instantiate the model
-model = rerankGPT2LMHeadModel_exclude_cases_label_not_in_candidates.from_pretrained("gpt2", config=configuration,
-                                                                                    MAX_LEN = MAX_LEN,
-                                                                                    CAN_NUM = CAN_NUM, 
-                                                                                    num_of_rerank = num_of_rerank)
-
+model = rerankGPT2LMHeadModel_prior_probability_sharing_head.from_pretrained("gpt2", 
+                                                                             config=configuration,
+                                                                             MAX_LEN = MAX_LEN,
+                                                                             CAN_NUM = CAN_NUM, 
+                                                                             num_of_rerank = num_of_rerank)
 
 # this step is necessary because I've added some tokens (bos_token, etc) to the embeddings
 # otherwise the tokenizer and model tensors won't match up
@@ -272,10 +272,10 @@ for epoch_i in range(0, epochs):
             
             # save model
             model.module.save_pretrained(
-                SAVE_PATH + "results/baseline_wiki2021/exclude_cases_label_not_in_candidates_canNUM100/"+str(step)
+                SAVE_PATH + "results/baseline_wiki2021/prior_probability_canNUM5/"+str(step)
             )
             fg_eval.to_pickle(
-                SAVE_PATH + "results/baseline_wiki2021/exclude_cases_label_not_in_candidates_canNUM100/"+str(step)+"/fg_eval.pkl")
+                SAVE_PATH + "results/baseline_wiki2021/prior_probability_canNUM5/"+str(step)+"/fg_eval.pkl")
     
             model.train()
 
@@ -285,4 +285,4 @@ print("")
 print("Training complete!")
 print("Total training took {:} (h:mm:ss)".format(format_time(time.time()-total_t0)))
 # print(f"Perplexity: {math.exp(eval_loss):.2f}")
-model.module.save_pretrained(SAVE_PATH + "results/baseline_wiki2021/exclude_cases_label_not_in_candidates_canNUM100/last_model")
+model.module.save_pretrained(SAVE_PATH + "results/baseline_wiki2021/prior_probability_canNUM5/last_model")

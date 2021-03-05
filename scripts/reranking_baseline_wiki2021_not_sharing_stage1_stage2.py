@@ -23,7 +23,7 @@ logger = logging.get_logger(__name__)
 
 from rerankGPT2LMHeadModel import rerankGPT2LMHeadModel_not_sharing_stage1_stage2, wiki2021_GPT2Dataset
 
-batch_size = 24
+batch_size = 4
 MAX_LEN = 128
 CAN_NUM = 20
 num_of_rerank = 30
@@ -280,10 +280,10 @@ for epoch_i in range(0, epochs):
             fg_eval['entropy_difficulty_level'] = fg_eval['normal_logits'].apply(cal_entropy_difficulty_level)
             
             model.module.save_pretrained(
-                "results/baseline_wiki2021/canNUM20_not_sharing_stage1_stage2/"+str(step)
+                "results/baseline_wiki2021/not_sharing_stage1_stage2_canNUM20/"+str(step)
             )
             fg_eval.to_pickle(
-                "results/baseline_wiki2021/canNUM20_not_sharing_stage1_stage2/"+str(step)+"/fg_eval.pkl")
+                "results/baseline_wiki2021/not_sharing_stage1_stage2_canNUM20/"+str(step)+"/fg_eval.pkl")
     
             model.train()
         
@@ -295,4 +295,4 @@ print("")
 print("Training complete!")
 print("Total training took {:} (h:mm:ss)".format(format_time(time.time()-total_t0)))
 # print(f"Perplexity: {math.exp(eval_loss):.2f}")
-model.module.save_pretrained("results/baseline_wiki2021/canNUM20_not_sharing_stage1_stage2/last_model")
+model.module.save_pretrained("results/baseline_wiki2021/not_sharing_stage1_stage2_canNUM20/last_model")

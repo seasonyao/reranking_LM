@@ -23,7 +23,7 @@ logger = logging.get_logger(__name__)
 
 from rerankGPT2LMHeadModel import rerankGPT2LMHeadModel_no_stage2, wiki2021_GPT2Dataset
 
-batch_size = 64
+batch_size = 8
 MAX_LEN = 128
 CAN_NUM = 20
 num_of_rerank = 30
@@ -200,7 +200,7 @@ for epoch_i in range(0, epochs):
         if step % 20000 == 0 and not step == 0:
             # save model
             model.module.save_pretrained(
-                "results/baseline_wiki2021/canNUM20_not_stage2/"+str(step)
+                "results/baseline_wiki2021/not_stage2_canNUM20/"+str(step)
             )
 
     
@@ -209,4 +209,4 @@ print("")
 print("Training complete!")
 print("Total training took {:} (h:mm:ss)".format(format_time(time.time()-total_t0)))
 # print(f"Perplexity: {math.exp(eval_loss):.2f}")
-model.module.save_pretrained("results/baseline_wiki2021/canNUM20_not_stage2/last_model")
+model.module.save_pretrained("results/baseline_wiki2021/not_stage2_canNUM20/last_model")

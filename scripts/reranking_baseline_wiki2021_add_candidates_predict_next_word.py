@@ -23,7 +23,7 @@ logger = logging.get_logger(__name__)
 
 from rerankGPT2LMHeadModel import rerankGPT2LMHeadModel_add_candidates_predict_next_word, wiki2021_GPT2Dataset
 
-batch_size = 8
+batch_size = 32
 MAX_LEN = 128
 CAN_NUM = 20
 num_of_rerank = 30
@@ -56,7 +56,7 @@ GPT2_model = GPT2LMHeadModel.from_pretrained("gpt2", config=configuration)
 model_dict = GPT2_model.state_dict()
 model_dict.update({'rerank_linear_head.weight': model_dict['lm_head.weight']})
 model = rerankGPT2LMHeadModel_add_candidates_predict_next_word.from_pretrained("gpt2", config=configuration, 
-                                                                               state_dict = model_dict
+                                                                               state_dict = model_dict,
                                                                                MAX_LEN = MAX_LEN,
                                                                                CAN_NUM = CAN_NUM, 
                                                                                num_of_rerank = num_of_rerank)
@@ -231,10 +231,8 @@ for epoch_i in range(0, epochs):
             
             # save model
             model.module.save_pretrained(
-                "results/baseline_wiki2021/add_candidates_predict_next_word/"+str(step)
+                "results/baseline_wiki2021/add_candidates_predict_next_word_canNUM20/"+str(step)
             )
-            fg_eval.to_pickle(
-                "results/baseline_wiki2021/add_candidates_predict_next_word/"+str(step)+"/fg_eval.pkl")
     
             model.train()
 
@@ -243,4 +241,4 @@ print("")
 print("Training complete!")
 print("Total training took {:} (h:mm:ss)".format(format_time(time.time()-total_t0)))
 # print(f"Perplexity: {math.exp(eval_loss):.2f}")
-model.module.save_pretrained("results/baseline_wiki2021/add_candidates_predict_next_word/last_model")
+model.module.save_pretrained("results/baseline_wiki2021/add_candidates_predict_next_word_canNUM20/last_model")
