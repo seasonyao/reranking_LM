@@ -21,7 +21,7 @@ from transformers import Trainer, TrainerState, TrainingArguments
 from transformers.utils import logging
 logger = logging.get_logger(__name__)
 
-from rerankGPT2LMHeadModel import rerankGPT2LMHeadModel_not_repeat_candidate, wiki2021_GPT2Dataset
+from rerankGPT2LMHeadModel import rerankGPT2LMHeadModel_token_type_embeddings012, wiki2021_GPT2Dataset
 
 batch_size = 1
 MAX_LEN = 128
@@ -52,10 +52,10 @@ tokenizer = GPT2Tokenizer.from_pretrained('gpt2', pad_token='<|endoftext|>') #gp
 
 
 # instantiate the model
-model = rerankGPT2LMHeadModel_not_repeat_candidate.from_pretrained("gpt2", config=configuration,
-                                                                    MAX_LEN = MAX_LEN,
-                                                                    CAN_NUM = CAN_NUM, 
-                                                                    num_of_rerank = num_of_rerank)
+model = rerankGPT2LMHeadModel_token_type_embeddings012.from_pretrained("gpt2", config=configuration,
+                                                                                    MAX_LEN = MAX_LEN,
+                                                                                    CAN_NUM = CAN_NUM, 
+                                                                                    num_of_rerank = num_of_rerank)
 
 
 # this step is necessary because I've added some tokens (bos_token, etc) to the embeddings
@@ -270,17 +270,14 @@ for epoch_i in range(0, epochs):
 
             fg_eval['entropy_difficulty_level'] = fg_eval['normal_logits'].apply(cal_entropy_difficulty_level)
             
-#             # save model
+            # save model
 #             model.module.save_pretrained(
-#                 "results/baseline_wiki2021/not_repeat_candidate/baseline/"+str(step)
+#                 SAVE_PATH + "results/baseline_wiki2021/exclude_cases_label_not_in_candidates_canNUM100/"+str(step)
 #             )
-            
 #             fg_eval.to_pickle(
-#                 "results/baseline_wiki2021/not_repeat_candidate/baseline/"+str(step)+"/fg_eval.pkl")
+#                 SAVE_PATH + "results/baseline_wiki2021/exclude_cases_label_not_in_candidates_canNUM100/"+str(step)+"/fg_eval.pkl")
     
             model.train()
-        
-
 
     
 
@@ -288,4 +285,4 @@ print("")
 print("Training complete!")
 print("Total training took {:} (h:mm:ss)".format(format_time(time.time()-total_t0)))
 # print(f"Perplexity: {math.exp(eval_loss):.2f}")
-# model.module.save_pretrained("results/baseline_wiki2021/not_repeat_candidate/baseline/last_model")
+# model.module.save_pretrained(SAVE_PATH + "results/baseline_wiki2021/exclude_cases_label_not_in_candidates_canNUM100/last_model")
