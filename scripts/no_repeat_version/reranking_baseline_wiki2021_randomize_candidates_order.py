@@ -21,9 +21,9 @@ from transformers import Trainer, TrainerState, TrainingArguments
 from transformers.utils import logging
 logger = logging.get_logger(__name__)
 
-from rerankGPT2LMHeadModel import rerankGPT2LMHeadModel_not_repeat_candidate, wiki2021_GPT2Dataset
+from rerankGPT2LMHeadModel import rerankGPT2LMHeadModel_randomize_candidates_order, wiki2021_GPT2Dataset
 
-batch_size = 10
+batch_size = 32
 MAX_LEN = 128
 CAN_NUM = 20
 num_of_rerank = 30
@@ -52,10 +52,10 @@ tokenizer = GPT2Tokenizer.from_pretrained('gpt2', pad_token='<|endoftext|>') #gp
 
 
 # instantiate the model
-model = rerankGPT2LMHeadModel_not_repeat_candidate.from_pretrained("gpt2", config=configuration,
-                                                                    MAX_LEN = MAX_LEN,
-                                                                    CAN_NUM = CAN_NUM, 
-                                                                    num_of_rerank = num_of_rerank)
+model = rerankGPT2LMHeadModel_randomize_candidates_order.from_pretrained("gpt2", config=configuration,
+                                                                        MAX_LEN = MAX_LEN,
+                                                                        CAN_NUM = CAN_NUM, 
+                                                                        num_of_rerank = num_of_rerank)
 
 
 # this step is necessary because I've added some tokens (bos_token, etc) to the embeddings
@@ -178,6 +178,7 @@ for epoch_i in range(0, epochs):
             elapsed = format_time(time.time() - t0)
             print('  Batch {:>5,}  of  {:>5,}. Loss: {:>5,}.   Elapsed: {:}.'.format(step, len(train_dataloader), batch_loss, elapsed))
 
+
         # Get inside eval every x batches.
         if step % 10000 == 0 and not step == 0:           
             t1 = time.time()
@@ -272,15 +273,13 @@ for epoch_i in range(0, epochs):
             
             # save model
             model.module.save_pretrained(
-                "results/baseline_wiki2021/not_repeat_candidate/"+str(step)
+                "results/baseline_wiki2021/not_repeat_candidate/randomize_candidates_order/"+str(step)
             )
             
             fg_eval.to_pickle(
-                "results/baseline_wiki2021/not_repeat_candidate/"+str(step)+"/fg_eval.pkl")
+                "results/baseline_wiki2021/not_repeat_candidate/randomize_candidates_order/"+str(step)+"/fg_eval.pkl")
     
             model.train()
-        
-
 
     
 
@@ -288,4 +287,4 @@ print("")
 print("Training complete!")
 print("Total training took {:} (h:mm:ss)".format(format_time(time.time()-total_t0)))
 # print(f"Perplexity: {math.exp(eval_loss):.2f}")
-model.module.save_pretrained("results/baseline_wiki2021/not_repeat_candidate/last_model")
+model.module.save_pretrained("results/baseline_wiki2021/not_repeat_candidate/randomize_candidates_order/last_model")
