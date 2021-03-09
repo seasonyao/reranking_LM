@@ -1651,6 +1651,85 @@ class rerankGPT2LMHeadModel_stage1_all_tokens_stage2_sample_tokens(GPT2LMHeadMod
                     "all_prediction_ids": all_prediction_ids,
                     "all_input_ids": all_input_ids}
         
+        
+class rerankGPT2LMHeadModel_stage1_all_tokens_no_stage2(GPT2LMHeadModel):
+    def __init__(self, config, MAX_LEN, CAN_NUM, num_of_rerank):
+        super().__init__(config)
+        self.MAX_LEN = MAX_LEN
+        self.CAN_NUM = CAN_NUM
+        self.num_of_rerank = num_of_rerank
+        self.VOCAB_SIZE = config.vocab_size
+        
+        self.transformer = GPT2Model(config)
+        self.lm_head = nn.Linear(config.n_embd, config.vocab_size, bias=False)
+
+        self.init_weights()
+    def forward(
+        self,
+        input_ids=None,
+        labels=None,
+        is_training=False,
+    ):
+        r"""
+        labels (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_length)`, `optional`):
+            Labels for language modeling. Note that the labels **are shifted** inside the model, i.e. you can set
+            ``labels = input_ids`` Indices are selected in ``[-100, 0, ..., config.vocab_size]`` All labels set to
+            ``-100`` are ignored (masked), the loss is only computed for labels in ``[0, ..., config.vocab_size]``
+        """
+        # make some model parameter not change during rerank (like dropout) ??????????????
+        # model.eval()
+        if is_training:
+            self.transformer.eval()
+
+        rerank_places = random.sample(np.arange(1, self.MAX_LEN).tolist(), k=self.num_of_rerank) #no duplicate
+        rerank_places = np.concatenate(([0], np.sort(rerank_places), [self.MAX_LEN])) #add first and last tokens to make segments
+        
+        past_key_values = None
+        all_rerank_hidden_states = []
+        all_rerank_labels = []
+        no_rerank_logits = []
+        check_out_num = 0
+        
+        hidden_states = []
+        
+        for i in range(self.num_of_rerank+1):
+            #normal stage
+            segment_input_ids = input_ids[:, rerank_places[i]:rerank_places[i+1]]
+
+            segment_outputs = self.transformer(
+                segment_input_ids,
+                past_key_values = past_key_values
+            )
+
+            segment_hidden = segment_outputs[0]
+            past_key_values = segment_outputs[1]
+
+            hidden_states.append(segment_hidden)
+        
+#         print("\n batch info:")
+#         print("there are ", check_out_num/(self.num_of_rerank*batch_size), "labels not in candidates")
+    
+        #model.train()
+        self.transformer.train()
+
+        #-------------------------------------------------------------------------
+        # cal loss, loss = normal loss + rerank loss
+        loss_fct = CrossEntropyLoss(reduction='none')
+
+        # cal normal loss
+        normal_loss = None
+
+        hidden_states = torch.cat(hidden_states, 1)
+        lm_logits = self.lm_head(hidden_states)
+
+        # Shift so that tokens < n predict n
+        shift_logits = lm_logits[..., :-1, :].contiguous()
+        shift_labels = labels[..., 1:].contiguous()
+        # Flatten the tokens
+        normal_loss = loss_fct(shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1))
+
+        return {"normal_loss": normal_loss}
+        
 class rerankGPT2LMHeadModel_token_type_embeddings01(GPT2LMHeadModel):
     def __init__(self, config, MAX_LEN, CAN_NUM, num_of_rerank):
         super().__init__(config)
