@@ -9,6 +9,7 @@ conda install -c conda-forge ipywidgets
 conda install -c conda-forge matplotlib
 conda install -c conda-forge jupyter_nbextensions_configurator
 conda install -c conda-forge spacy
+python -m spacy download en_core_web_sm
 conda install pandas
 conda install nltk
 
