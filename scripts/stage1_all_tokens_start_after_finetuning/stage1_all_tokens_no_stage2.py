@@ -72,7 +72,7 @@ device = torch.device("cuda")
 model.cuda()
 
 #----------------------------------------------------------------------------------------
-with open(SAVE_PATH + 'data/wiki2021/wiki2021_0to4_train_dataset.pkl', 'rb') as f:
+with open(SAVE_PATH + 'data/wiki2021/wiki2021_5to8_train_dataset.pkl', 'rb') as f:
     train_input_ids = pickle.load(f)
 with open(SAVE_PATH + 'data/wiki2021/wiki2021_0to4_validation_dataset.pkl', 'rb') as f:
     validation_input_ids = pickle.load(f)
@@ -91,12 +91,12 @@ train_dataloader = DataLoader(
             batch_size = batch_size # Trains with this batch size.
         )
 
-# For validation the order doesn't matter, so we'll just read them sequentially.
-validation_dataloader = DataLoader(
-            validation_dataset, # The validation samples.
-            sampler = SequentialSampler(validation_dataset), # Pull out batches sequentially.
-            batch_size = batch_size # Evaluate with this batch size.
-        )
+# # For validation the order doesn't matter, so we'll just read them sequentially.
+# validation_dataloader = DataLoader(
+#             validation_dataset, # The validation samples.
+#             sampler = SequentialSampler(validation_dataset), # Pull out batches sequentially.
+#             batch_size = batch_size # Evaluate with this batch size.
+#         )
 
 # For inside_validation the order doesn't matter, so we'll just read them sequentially.
 inside_validation_dataloader = DataLoader(

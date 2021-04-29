@@ -75,7 +75,7 @@ model.cuda()
 
 
 #----------------------------------------------------------------------------------------
-with open(SAVE_PATH + 'data/wiki2021/wiki2021_0to4_train_dataset.pkl', 'rb') as f:
+with open(SAVE_PATH + 'data/wiki2021/wiki2021_5to8_train_dataset.pkl', 'rb') as f:
     train_input_ids = pickle.load(f)
 with open(SAVE_PATH + 'data/wiki2021/wiki2021_0to4_validation_dataset.pkl', 'rb') as f:
     validation_input_ids = pickle.load(f)
@@ -94,12 +94,12 @@ train_dataloader = DataLoader(
             batch_size = batch_size # Trains with this batch size.
         )
 
-# For validation the order doesn't matter, so we'll just read them sequentially.
-validation_dataloader = DataLoader(
-            validation_dataset, # The validation samples.
-            sampler = SequentialSampler(validation_dataset), # Pull out batches sequentially.
-            batch_size = batch_size # Evaluate with this batch size.
-        )
+# # For validation the order doesn't matter, so we'll just read them sequentially.
+# validation_dataloader = DataLoader(
+#             validation_dataset, # The validation samples.
+#             sampler = SequentialSampler(validation_dataset), # Pull out batches sequentially.
+#             batch_size = batch_size # Evaluate with this batch size.
+#         )
 
 # For inside_validation the order doesn't matter, so we'll just read them sequentially.
 inside_validation_dataloader = DataLoader(
@@ -144,24 +144,24 @@ for epoch_i in range(0, epochs):
 
     total_train_loss = 0
     total_train_normal_loss = 0
-    total_train_normal_loss_in_rerank_place = 0
     total_train_rerank_loss = 0
+    total_train_stage1_loss_in_rerank_place_across_all_vocab = 0
 
     model.train()
 
-    for step, batch in enumerate(train_dataloader):      
+    for step, batch in enumerate(train_dataloader): 
         model.zero_grad()
 
-        outputs = model(  input_ids=batch,            #batch_input_ids
-                          labels=batch,               #batch_labels
+        outputs = model(  input_ids=batch,         #batch_input_ids
+                          labels=batch,            #batch_labels
                           is_training=True,
                        )
 
-        normal_loss_in_rerank_place = outputs["normal_loss_in_rerank_place"].mean()
         normal_loss = outputs["normal_loss"].mean()
         rerank_loss = outputs["rerank_loss"].mean()
+        stage1_loss_in_rerank_place_across_all_vocab = outputs["stage1_loss_in_rerank_place_across_all_vocab"].mean()
 
-        loss = normal_loss + rerank_loss
+        loss = rerank_loss + stage1_loss_in_rerank_place_across_all_vocab
         
         batch_loss = loss.item()
         total_train_loss += batch_loss
@@ -169,11 +169,12 @@ for epoch_i in range(0, epochs):
         batch_normal_loss = normal_loss.item()
         total_train_normal_loss += batch_normal_loss
         
-        batch_normal_loss_in_rerank_place = normal_loss_in_rerank_place.item()
-        total_train_normal_loss_in_rerank_place += batch_normal_loss_in_rerank_place
-        
         batch_rerank_loss = rerank_loss.item()
         total_train_rerank_loss += batch_rerank_loss
+        
+        batch_stage1_loss_in_rerank_place_across_all_vocab = stage1_loss_in_rerank_place_across_all_vocab.item()
+        total_train_stage1_loss_in_rerank_place_across_all_vocab += batch_stage1_loss_in_rerank_place_across_all_vocab
+        
         
         loss.backward()
         optimizer.step()
@@ -184,8 +185,8 @@ for epoch_i in range(0, epochs):
             print('  Batch {:>5,}  of  {:>5,}. Loss: {:>5,}.   Elapsed: {:}.'.format(step, len(train_dataloader), batch_normal_loss, elapsed))
             print("batch_loss:", batch_loss)
             print("batch_normal_loss:", batch_normal_loss)
-            print("batch_normal_loss_in_rerank_place:", batch_normal_loss_in_rerank_place)
             print("batch_rerank_loss:", batch_rerank_loss)
+            print("batch_stage1_loss_in_rerank_place_across_all_vocab:", batch_stage1_loss_in_rerank_place_across_all_vocab)
 
         # Get inside eval every x batches.
         if step % 10000 == 0 and not step == 0:           
@@ -197,8 +198,8 @@ for epoch_i in range(0, epochs):
 
             total_eval_loss = 0
             total_eval_normal_loss = 0
-            total_eval_normal_loss_in_rerank_place = 0
-            total_eval_rerank_loss = 0        
+            total_eval_rerank_loss = 0     
+            total_eval_stage1_loss_in_rerank_place_across_all_vocab = 0  
 
             # Evaluate data for one epoch
             for batch in inside_validation_dataloader:
@@ -210,34 +211,36 @@ for epoch_i in range(0, epochs):
                                    )
 
                     normal_loss = outputs["normal_loss"].mean()
-                    normal_loss_in_rerank_place = outputs["normal_loss_in_rerank_place"].mean()
                     rerank_loss = outputs["rerank_loss"].mean()
+                    stage1_loss_in_rerank_place_across_all_vocab = outputs["stage1_loss_in_rerank_place_across_all_vocab"].mean()
+                    stage1_loss_in_rerank_place_across_candidates = outputs["stage1_loss_in_rerank_place_across_candidates"].mean()
 
-                    loss = normal_loss + rerank_loss
+                    loss = rerank_loss + stage1_loss_in_rerank_place_across_all_vocab
 
-                batch_loss = loss.item()
-                total_eval_loss += batch_loss        
+                    batch_loss = loss.item()
+                    total_eval_loss += batch_loss
 
-                batch_normal_loss = normal_loss.item()
-                total_eval_normal_loss += batch_normal_loss
+                    batch_normal_loss = normal_loss.item()
+                    total_eval_normal_loss += batch_normal_loss
 
-                batch_normal_loss_in_rerank_place = normal_loss_in_rerank_place.item()
-                total_eval_normal_loss_in_rerank_place += batch_normal_loss_in_rerank_place
+                    batch_rerank_loss = rerank_loss.item()
+                    total_eval_rerank_loss += batch_rerank_loss
 
-                batch_rerank_loss = rerank_loss.item()
-                total_eval_rerank_loss += batch_rerank_loss
+                    batch_stage1_loss_in_rerank_place_across_all_vocab = stage1_loss_in_rerank_place_across_all_vocab.item()
+                    total_eval_stage1_loss_in_rerank_place_across_all_vocab += batch_stage1_loss_in_rerank_place_across_all_vocab
+
 
             avg_val_loss = total_eval_loss / len(inside_validation_dataloader)
-            avg_val_normal_loss = total_eval_normal_loss / len(inside_validation_dataloader) 
-            avg_val_normal_loss_in_rerank_place = total_eval_normal_loss_in_rerank_place / len(inside_validation_dataloader) 
+            avg_val_normal_loss = total_eval_normal_loss / len(inside_validation_dataloader)  
             avg_val_rerank_loss = total_eval_rerank_loss / len(inside_validation_dataloader)    
+            avg_val_stage1_loss_in_rerank_place_across_all_vocab = total_eval_stage1_loss_in_rerank_place_across_all_vocab / len(inside_validation_dataloader)     
 
             validation_time = format_time(time.time() - t1)    
 
             print("  Validation Loss:", avg_val_loss)
             print("  Average Validation normal_loss:", avg_val_normal_loss)
-            print("  Average Validation normal_loss_in_rerank_place:", avg_val_normal_loss_in_rerank_place)
             print("  Average Validation rerank_loss:", avg_val_rerank_loss)
+            print("  Average Validation stage1_loss_in_rerank_place_across_all_vocab:", avg_val_stage1_loss_in_rerank_place_across_all_vocab)
             print("  Validation took:", validation_time)
             
             model.train()
