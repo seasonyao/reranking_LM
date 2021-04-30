@@ -309,14 +309,14 @@ class rerankGPT2LMHeadModel_stage1_all_tokens_stage2_sample_tokens(GPT2LMHeadMod
             labels_in_rerank_place.append(rerank_labels)
             hidden_states_in_rerank_place.append(segment_hidden[:, -1, :])
             
-            #check whether or not label in candidates
-            check_labels = rerank_labels.tolist()
-            check_candidates = candidate_token_ids.tolist()
-            
             #randomize the order of candidates
             shuffle_index = np.random.permutation(self.CAN_NUM)
             candidate_token_logits = candidate_token_logits[:, shuffle_index]
             candidate_token_ids = candidate_token_ids[:, shuffle_index]
+            
+            #check whether or not label in candidates
+            check_labels = rerank_labels.tolist()
+            check_candidates = candidate_token_ids.tolist()
             
             assert len(check_labels)==len(check_candidates)
             
