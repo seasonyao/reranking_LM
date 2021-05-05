@@ -21,7 +21,7 @@ from transformers import Trainer, TrainerState, TrainingArguments
 from transformers.utils import logging
 logger = logging.get_logger(__name__)
 
-from rerankGPT2LMHeadModel import rerankGPT2LMHeadModel_stage1_all_tokens_stage2_all_tokens, wiki2021_GPT2Dataset
+from rerankGPT2LMHeadModel import rerankGPT2LMHeadModel_stage1_all_tokens_stage2_sample_tokens_prior_probability_sharing_head, wiki2021_GPT2Dataset
 
 batch_size = 8
 MAX_LEN = 128
@@ -52,7 +52,7 @@ tokenizer = GPT2Tokenizer.from_pretrained('gpt2', pad_token='<|endoftext|>') #gp
 
 
 # instantiate the model
-model = rerankGPT2LMHeadModel_stage1_all_tokens_stage2_all_tokens.from_pretrained("/mnt/nfs/work1/llcao/zhiyilai/reranking_LM/results/baseline_wiki2021/stage1_all_tokens_no_stage2_canNUM20/last_model",
+model = rerankGPT2LMHeadModel_stage1_all_tokens_stage2_sample_tokens_prior_probability_sharing_head.from_pretrained("/mnt/nfs/work1/llcao/zhiyilai/reranking_LM/results/baseline_wiki2021/stage1_all_tokens_no_stage2_canNUM20/last_model",
                                                                              config=configuration,
                                                                              MAX_LEN = MAX_LEN,
                                                                              CAN_NUM = CAN_NUM, 
@@ -146,7 +146,7 @@ for epoch_i in range(0, epochs):
     total_train_normal_loss = 0
     total_train_rerank_loss = 0
     total_train_stage1_loss_in_rerank_place_across_all_vocab = 0
-    total_train_rerank_hidden_states_meganitude = 0
+    total_train_stage1_loss_in_rerank_place_across_candidates = 0
 
     model.train()
 
@@ -161,7 +161,7 @@ for epoch_i in range(0, epochs):
         normal_loss = outputs["normal_loss"].mean()
         rerank_loss = outputs["rerank_loss"].mean()
         stage1_loss_in_rerank_place_across_all_vocab = outputs["stage1_loss_in_rerank_place_across_all_vocab"].mean()
-        rerank_hidden_states_meganitude = outputs["rerank_hidden_states_meganitude"].mean()
+        stage1_loss_in_rerank_place_across_candidates = outputs["stage1_loss_in_rerank_place_across_candidates"].mean()
 
         loss = rerank_loss + stage1_loss_in_rerank_place_across_all_vocab
         
@@ -177,8 +177,8 @@ for epoch_i in range(0, epochs):
         batch_stage1_loss_in_rerank_place_across_all_vocab = stage1_loss_in_rerank_place_across_all_vocab.item()
         total_train_stage1_loss_in_rerank_place_across_all_vocab += batch_stage1_loss_in_rerank_place_across_all_vocab
         
-        batch_stage1_rerank_hidden_states_meganitude = rerank_hidden_states_meganitude.item()
-        total_train_rerank_hidden_states_meganitude += batch_stage1_rerank_hidden_states_meganitude
+        batch_stage1_loss_in_rerank_place_across_candidates = stage1_loss_in_rerank_place_across_candidates.item()
+        total_train_stage1_loss_in_rerank_place_across_candidates += batch_stage1_loss_in_rerank_place_across_candidates
         
         loss.backward()
         optimizer.step()
@@ -191,7 +191,7 @@ for epoch_i in range(0, epochs):
             print("batch_normal_loss:", batch_normal_loss)
             print("batch_rerank_loss:", batch_rerank_loss)
             print("batch_stage1_loss_in_rerank_place_across_all_vocab:", batch_stage1_loss_in_rerank_place_across_all_vocab)
-            print("batch_stage1_rerank_hidden_states_meganitude:", batch_stage1_rerank_hidden_states_meganitude)
+            print("batch_stage1_loss_in_rerank_place_across_candidates:", batch_stage1_loss_in_rerank_place_across_candidates)
 
         # Get inside eval every x batches.
         if step % 10000 == 0 and not step == 0:           
@@ -204,8 +204,8 @@ for epoch_i in range(0, epochs):
             total_eval_loss = 0
             total_eval_normal_loss = 0
             total_eval_rerank_loss = 0     
-            total_eval_stage1_loss_in_rerank_place_across_all_vocab = 0  
-            total_eval_rerank_hidden_states_meganitude = 0
+            total_eval_stage1_loss_in_rerank_place_across_all_vocab = 0
+            total_eval_stage1_loss_in_rerank_place_across_candidates = 0     
 
             # Evaluate data for one epoch
             for batch in inside_validation_dataloader:
@@ -219,7 +219,7 @@ for epoch_i in range(0, epochs):
                     normal_loss = outputs["normal_loss"].mean()
                     rerank_loss = outputs["rerank_loss"].mean()
                     stage1_loss_in_rerank_place_across_all_vocab = outputs["stage1_loss_in_rerank_place_across_all_vocab"].mean()
-                    rerank_hidden_states_meganitude = outputs["rerank_hidden_states_meganitude"].mean()
+                    stage1_loss_in_rerank_place_across_candidates = outputs["stage1_loss_in_rerank_place_across_candidates"].mean()
 
                     loss = rerank_loss + stage1_loss_in_rerank_place_across_all_vocab
 
@@ -234,16 +234,16 @@ for epoch_i in range(0, epochs):
 
                     batch_stage1_loss_in_rerank_place_across_all_vocab = stage1_loss_in_rerank_place_across_all_vocab.item()
                     total_eval_stage1_loss_in_rerank_place_across_all_vocab += batch_stage1_loss_in_rerank_place_across_all_vocab
-                    
-                    batch_stage1_rerank_hidden_states_meganitude = rerank_hidden_states_meganitude.item()
-                    total_eval_rerank_hidden_states_meganitude += batch_stage1_rerank_hidden_states_meganitude
+
+                    batch_stage1_loss_in_rerank_place_across_candidates = stage1_loss_in_rerank_place_across_candidates.item()
+                    total_eval_stage1_loss_in_rerank_place_across_candidates += batch_stage1_loss_in_rerank_place_across_candidates
 
 
             avg_val_loss = total_eval_loss / len(inside_validation_dataloader)
             avg_val_normal_loss = total_eval_normal_loss / len(inside_validation_dataloader)  
             avg_val_rerank_loss = total_eval_rerank_loss / len(inside_validation_dataloader)    
-            avg_val_stage1_loss_in_rerank_place_across_all_vocab = total_eval_stage1_loss_in_rerank_place_across_all_vocab / len(inside_validation_dataloader)     
-            avg_val_rerank_hidden_states_meganitude = total_eval_rerank_hidden_states_meganitude / len(inside_validation_dataloader)     
+            avg_val_stage1_loss_in_rerank_place_across_all_vocab = total_eval_stage1_loss_in_rerank_place_across_all_vocab / len(inside_validation_dataloader)  
+            avg_val_stage1_loss_in_rerank_place_across_candidates = total_eval_stage1_loss_in_rerank_place_across_candidates / len(inside_validation_dataloader)    
 
             validation_time = format_time(time.time() - t1)    
 
@@ -251,7 +251,7 @@ for epoch_i in range(0, epochs):
             print("  Average Validation normal_loss:", avg_val_normal_loss)
             print("  Average Validation rerank_loss:", avg_val_rerank_loss)
             print("  Average Validation stage1_loss_in_rerank_place_across_all_vocab:", avg_val_stage1_loss_in_rerank_place_across_all_vocab)
-            print("  Average Validation arerank_hidden_states_meganitude:", avg_val_rerank_hidden_states_meganitude)
+            print("  Average Validation stage1_loss_in_rerank_place_across_candidates:", avg_val_stage1_loss_in_rerank_place_across_candidates)
             print("  Validation took:", validation_time)
             
             model.train()
@@ -259,14 +259,15 @@ for epoch_i in range(0, epochs):
         if step % 10000 == 0 and not step == 0:
             # save model
             model.module.save_pretrained(
-                "results/stage1_all_tokens_start_after_finetuning/stage1_all_tokens_stage2_all_tokens/"+str(step)
+                "results/stage1_all_tokens_start_after_finetuning/stage1_all_tokens_stage2_sample_tokens_prior_probability_sharing_head/"+str(step)
             )
             
     # Calculate the average loss over all of the batches.
     avg_train_loss = total_train_loss / len(train_dataloader)       
     avg_train_normal_loss = total_train_normal_loss / len(train_dataloader)      
     avg_train_rerank_loss = total_train_rerank_loss / len(train_dataloader)       
-    avg_train_stage1_loss_in_rerank_place_across_all_vocab = total_train_stage1_loss_in_rerank_place_across_all_vocab / len(train_dataloader)  
+    avg_train_stage1_loss_in_rerank_place_across_all_vocab = total_train_stage1_loss_in_rerank_place_across_all_vocab / len(train_dataloader)      
+    avg_train_stage1_loss_in_rerank_place_across_candidates = total_train_stage1_loss_in_rerank_place_across_candidates / len(train_dataloader)       
     
     # Measure how long this epoch took.
     training_time = format_time(time.time() - t0)
@@ -283,4 +284,4 @@ print("")
 print("Training complete!")
 print("Total training took {:} (h:mm:ss)".format(format_time(time.time()-total_t0)))
 # print(f"Perplexity: {math.exp(eval_loss):.2f}")
-model.module.save_pretrained("results/stage1_all_tokens_start_after_finetuning/stage1_all_tokens_stage2_all_tokens/last_model")
+model.module.save_pretrained("results/stage1_all_tokens_start_after_finetuning/stage1_all_tokens_stage2_sample_tokens_prior_probability_sharing_head/last_model")

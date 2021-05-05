@@ -21,7 +21,7 @@ from transformers import Trainer, TrainerState, TrainingArguments
 from transformers.utils import logging
 logger = logging.get_logger(__name__)
 
-from rerankGPT2LMHeadModel import rerankGPT2LMHeadModel_stage1_all_tokens_stage2_all_tokens, wiki2021_GPT2Dataset
+from rerankGPT2LMHeadModel import rerankGPT2LMHeadModel_stage1_all_tokens_stage2_all_tokens_use_different_layer, wiki2021_GPT2Dataset
 
 batch_size = 8
 MAX_LEN = 128
@@ -52,7 +52,7 @@ tokenizer = GPT2Tokenizer.from_pretrained('gpt2', pad_token='<|endoftext|>') #gp
 
 
 # instantiate the model
-model = rerankGPT2LMHeadModel_stage1_all_tokens_stage2_all_tokens.from_pretrained("/mnt/nfs/work1/llcao/zhiyilai/reranking_LM/results/baseline_wiki2021/stage1_all_tokens_no_stage2_canNUM20/last_model",
+model = rerankGPT2LMHeadModel_stage1_all_tokens_stage2_all_tokens_use_different_layer.from_pretrained("/mnt/nfs/work1/llcao/zhiyilai/reranking_LM/results/baseline_wiki2021/stage1_all_tokens_no_stage2_canNUM20/last_model",
                                                                              config=configuration,
                                                                              MAX_LEN = MAX_LEN,
                                                                              CAN_NUM = CAN_NUM, 
@@ -75,7 +75,7 @@ model.cuda()
 
 
 #----------------------------------------------------------------------------------------
-with open(SAVE_PATH + 'data/wiki2021/wiki2021_5to8_train_dataset.pkl', 'rb') as f:
+with open(SAVE_PATH + 'data/wiki2021/wiki2021_0to4_train_dataset.pkl', 'rb') as f:
     train_input_ids = pickle.load(f)
 with open(SAVE_PATH + 'data/wiki2021/wiki2021_0to4_validation_dataset.pkl', 'rb') as f:
     validation_input_ids = pickle.load(f)
@@ -259,7 +259,7 @@ for epoch_i in range(0, epochs):
         if step % 10000 == 0 and not step == 0:
             # save model
             model.module.save_pretrained(
-                "results/stage1_all_tokens_start_after_finetuning/stage1_all_tokens_stage2_all_tokens/"+str(step)
+                "results/stage1_all_tokens_start_after_finetuning/stage1_all_tokens_stage2_all_tokens_use_different_layer/"+str(step)
             )
             
     # Calculate the average loss over all of the batches.
@@ -283,4 +283,4 @@ print("")
 print("Training complete!")
 print("Total training took {:} (h:mm:ss)".format(format_time(time.time()-total_t0)))
 # print(f"Perplexity: {math.exp(eval_loss):.2f}")
-model.module.save_pretrained("results/stage1_all_tokens_start_after_finetuning/stage1_all_tokens_stage2_all_tokens/last_model")
+model.module.save_pretrained("results/stage1_all_tokens_start_after_finetuning/stage1_all_tokens_stage2_all_tokens_use_different_layer/last_model")
