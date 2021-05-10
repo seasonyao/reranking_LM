@@ -1073,7 +1073,7 @@ class rerankGPT2LMHeadModel_stage1_all_tokens_stage2_all_tokens(GPT2LMHeadModel)
         self.rerank_linear_head = nn.Linear(config.n_embd, config.n_embd, bias=False)
 
         self.init_weights()
-        self.rerank_linear_head.weight.data.normal_(mean=0.0, std=0.02)
+        self.rerank_linear_head.weight.data.normal_(mean=0.0, std=0.0002)
         
     @property
     def wte(self):
@@ -1163,6 +1163,7 @@ class rerankGPT2LMHeadModel_stage1_all_tokens_stage2_all_tokens(GPT2LMHeadModel)
             stage2_logits = stage1_logits.clone()
             
             stage2_candidates_logits = torch.matmul(rerank_hidden_states, stage1_hidden_states.unsqueeze(-1)).squeeze(-1)
+#             stage2_logits = stage2_logits.scatter(1, candidate_token_ids, stage2_candidates_logits)
             stage2_logits = stage2_logits.scatter_add(1, candidate_token_ids, stage2_candidates_logits)
             
             all_stage2_logits.append(stage2_logits)

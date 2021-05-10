@@ -30,7 +30,8 @@ num_of_rerank = 20
 
 # some parameters I cooked up that work reasonably well
 epochs = 1
-learning_rate = 1e-5
+# learning_rate = 1e-5
+learning_rate = 5e-4
 warmup_steps = 1e2
 epsilon = 1e-8
 
@@ -52,7 +53,12 @@ tokenizer = GPT2Tokenizer.from_pretrained('gpt2', pad_token='<|endoftext|>') #gp
 
 
 # instantiate the model
-model = rerankGPT2LMHeadModel_stage1_all_tokens_stage2_all_tokens.from_pretrained("/mnt/nfs/work1/llcao/zhiyilai/reranking_LM/results/baseline_wiki2021/stage1_all_tokens_no_stage2_canNUM20/last_model",
+# model = rerankGPT2LMHeadModel_stage1_all_tokens_stage2_all_tokens.from_pretrained("/mnt/nfs/work1/llcao/zhiyilai/reranking_LM/results/baseline_wiki2021/stage1_all_tokens_no_stage2_canNUM20/last_model",
+#                                                                              config=configuration,
+#                                                                              MAX_LEN = MAX_LEN,
+#                                                                              CAN_NUM = CAN_NUM, 
+#                                                                              num_of_rerank = num_of_rerank)
+model = rerankGPT2LMHeadModel_stage1_all_tokens_stage2_all_tokens.from_pretrained("gpt2",
                                                                              config=configuration,
                                                                              MAX_LEN = MAX_LEN,
                                                                              CAN_NUM = CAN_NUM, 
@@ -75,7 +81,7 @@ model.cuda()
 
 
 #----------------------------------------------------------------------------------------
-with open(SAVE_PATH + 'data/wiki2021/wiki2021_5to8_train_dataset.pkl', 'rb') as f:
+with open(SAVE_PATH + 'data/wiki2021/wiki2021_0to4_train_dataset.pkl', 'rb') as f:
     train_input_ids = pickle.load(f)
 with open(SAVE_PATH + 'data/wiki2021/wiki2021_0to4_validation_dataset.pkl', 'rb') as f:
     validation_input_ids = pickle.load(f)
@@ -184,6 +190,9 @@ for epoch_i in range(0, epochs):
         optimizer.step()
         scheduler.step()
         
+        if step < 100:
+            print("batch_stage1_rerank_hidden_states_meganitude:", batch_stage1_rerank_hidden_states_meganitude)
+        
         if step % 1000 == 0 and not step == 0:
             elapsed = format_time(time.time() - t0)
             print('  Batch {:>5,}  of  {:>5,}. Loss: {:>5,}.   Elapsed: {:}.'.format(step, len(train_dataloader), batch_normal_loss, elapsed))
@@ -256,11 +265,11 @@ for epoch_i in range(0, epochs):
             
             model.train()
         
-        if step % 10000 == 0 and not step == 0:
-            # save model
-            model.module.save_pretrained(
-                "results/stage1_all_tokens_start_after_finetuning/stage1_all_tokens_stage2_all_tokens/"+str(step)
-            )
+#         if step % 10000 == 0 and not step == 0:
+#             # save model
+#             model.module.save_pretrained(
+#                 "results/stage1_all_tokens_start_after_finetuning/stage1_all_tokens_stage2_all_tokens/"+str(step)
+#             )
             
     # Calculate the average loss over all of the batches.
     avg_train_loss = total_train_loss / len(train_dataloader)       
@@ -283,4 +292,4 @@ print("")
 print("Training complete!")
 print("Total training took {:} (h:mm:ss)".format(format_time(time.time()-total_t0)))
 # print(f"Perplexity: {math.exp(eval_loss):.2f}")
-model.module.save_pretrained("results/stage1_all_tokens_start_after_finetuning/stage1_all_tokens_stage2_all_tokens/last_model")
+# model.module.save_pretrained("results/stage1_all_tokens_start_after_finetuning/stage1_all_tokens_stage2_all_tokens/last_model")
