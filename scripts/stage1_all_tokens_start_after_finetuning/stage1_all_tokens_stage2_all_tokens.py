@@ -23,15 +23,15 @@ logger = logging.get_logger(__name__)
 
 from rerankGPT2LMHeadModel import rerankGPT2LMHeadModel_stage1_all_tokens_stage2_all_tokens, wiki2021_GPT2Dataset
 
-batch_size = 8
+batch_size = 24
 MAX_LEN = 128
 CAN_NUM = 100
 num_of_rerank = 20
 
 # some parameters I cooked up that work reasonably well
 epochs = 1
-# learning_rate = 1e-5
-learning_rate = 5e-4
+learning_rate = 1e-4
+# learning_rate = 5e-4
 warmup_steps = 1e2
 epsilon = 1e-8
 
@@ -53,16 +53,16 @@ tokenizer = GPT2Tokenizer.from_pretrained('gpt2', pad_token='<|endoftext|>') #gp
 
 
 # instantiate the model
-# model = rerankGPT2LMHeadModel_stage1_all_tokens_stage2_all_tokens.from_pretrained("/mnt/nfs/work1/llcao/zhiyilai/reranking_LM/results/baseline_wiki2021/stage1_all_tokens_no_stage2_canNUM20/last_model",
-#                                                                              config=configuration,
-#                                                                              MAX_LEN = MAX_LEN,
-#                                                                              CAN_NUM = CAN_NUM, 
-#                                                                              num_of_rerank = num_of_rerank)
-model = rerankGPT2LMHeadModel_stage1_all_tokens_stage2_all_tokens.from_pretrained("gpt2",
+model = rerankGPT2LMHeadModel_stage1_all_tokens_stage2_all_tokens.from_pretrained("/mnt/nfs/work1/llcao/zonghaiyao/LM/results/stage1_all_tokens_start_after_finetuning/stage1_all_tokens_stage2_all_tokens/lr5e4_add_scrach_bs24/90000",
                                                                              config=configuration,
                                                                              MAX_LEN = MAX_LEN,
                                                                              CAN_NUM = CAN_NUM, 
                                                                              num_of_rerank = num_of_rerank)
+# model = rerankGPT2LMHeadModel_stage1_all_tokens_stage2_all_tokens.from_pretrained("gpt2",
+#                                                                              config=configuration,
+#                                                                              MAX_LEN = MAX_LEN,
+#                                                                              CAN_NUM = CAN_NUM, 
+#                                                                              num_of_rerank = num_of_rerank)
 
 
 # this step is necessary because I've added some tokens (bos_token, etc) to the embeddings
@@ -83,13 +83,13 @@ model.cuda()
 #----------------------------------------------------------------------------------------
 with open(SAVE_PATH + 'data/wiki2021/wiki2021_0to4_train_dataset.pkl', 'rb') as f:
     train_input_ids = pickle.load(f)
-with open(SAVE_PATH + 'data/wiki2021/wiki2021_0to4_validation_dataset.pkl', 'rb') as f:
-    validation_input_ids = pickle.load(f)
+# with open(SAVE_PATH + 'data/wiki2021/wiki2021_0to4_validation_dataset.pkl', 'rb') as f:
+#     validation_input_ids = pickle.load(f)
 with open(SAVE_PATH + 'data/wiki2021/wiki2021_0to4_inside_validation_dataset.pkl', 'rb') as f:
     inside_validation_input_ids = pickle.load(f)
     
 train_dataset = wiki2021_GPT2Dataset(train_input_ids)
-validation_dataset = wiki2021_GPT2Dataset(validation_input_ids)
+# validation_dataset = wiki2021_GPT2Dataset(validation_input_ids)
 inside_validation_dataset = wiki2021_GPT2Dataset(inside_validation_input_ids)
 
 # Create the DataLoaders for our training and validation datasets.
@@ -157,6 +157,11 @@ for epoch_i in range(0, epochs):
     model.train()
 
     for step, batch in enumerate(train_dataloader): 
+        if step < 90000:
+            if step % 10000 == 0:
+                print(step)
+            continue
+        
         model.zero_grad()
 
         outputs = model(  input_ids=batch,         #batch_input_ids
@@ -190,8 +195,8 @@ for epoch_i in range(0, epochs):
         optimizer.step()
         scheduler.step()
         
-        if step < 100:
-            print("batch_stage1_rerank_hidden_states_meganitude:", batch_stage1_rerank_hidden_states_meganitude)
+#         if step < 100:
+#             print("batch_stage1_rerank_hidden_states_meganitude:", batch_stage1_rerank_hidden_states_meganitude)
         
         if step % 1000 == 0 and not step == 0:
             elapsed = format_time(time.time() - t0)
@@ -268,7 +273,7 @@ for epoch_i in range(0, epochs):
 #         if step % 10000 == 0 and not step == 0:
 #             # save model
 #             model.module.save_pretrained(
-#                 "results/stage1_all_tokens_start_after_finetuning/stage1_all_tokens_stage2_all_tokens/"+str(step)
+#                 "results/stage1_all_tokens_start_after_finetuning/stage1_all_tokens_stage2_all_tokens/lr5e4_add_scrach_bs8/"+str(step)
 #             )
             
     # Calculate the average loss over all of the batches.
@@ -292,4 +297,4 @@ print("")
 print("Training complete!")
 print("Total training took {:} (h:mm:ss)".format(format_time(time.time()-total_t0)))
 # print(f"Perplexity: {math.exp(eval_loss):.2f}")
-# model.module.save_pretrained("results/stage1_all_tokens_start_after_finetuning/stage1_all_tokens_stage2_all_tokens/last_model")
+# model.module.save_pretrained("results/stage1_all_tokens_start_after_finetuning/stage1_all_tokens_stage2_all_tokens/lr5e4_add_scrach_bs8/last_model")
