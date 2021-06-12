@@ -76,6 +76,8 @@ class rerankGPT2LMHeadModel_stage1_all_tokens_no_stage2(GPT2LMHeadModel):
         check_out_num = 0
         
         hidden_states = []
+        all_stage1_logits_rerank_place= []
+        all_rerank_labels = []
         
         for i in range(self.num_of_rerank+1):
             #normal stage
@@ -90,6 +92,16 @@ class rerankGPT2LMHeadModel_stage1_all_tokens_no_stage2(GPT2LMHeadModel):
             past_key_values = segment_outputs[1]
 
             hidden_states.append(segment_hidden)
+            
+            if i == self.num_of_rerank:
+                break
+            
+            stage1_hidden_states_rerank_place = segment_hidden[:, -1, :]
+            stage1_logits_rerank_place = self.lm_head(stage1_hidden_states_rerank_place)
+            rerank_labels = labels[..., rerank_places[i+1]]
+
+            all_stage1_logits_rerank_place.append(stage1_logits_rerank_place)
+            all_rerank_labels.append(rerank_labels)
         
 #         print("\n batch info:")
 #         print("there are ", check_out_num/(self.num_of_rerank*batch_size), "labels not in candidates")
@@ -112,8 +124,16 @@ class rerankGPT2LMHeadModel_stage1_all_tokens_no_stage2(GPT2LMHeadModel):
         shift_labels = labels[..., 1:].contiguous()
         # Flatten the tokens
         normal_loss = loss_fct(shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1))
+        
+        # cal normal loss in rerank place
+        normal_loss_in_rerank_place = None
+        all_stage1_logits_rerank_place = torch.cat(all_stage1_logits_rerank_place, 0)
+        all_rerank_labels = torch.cat(all_rerank_labels, 0)
+        
+        normal_loss_in_rerank_place = loss_fct(all_stage1_logits_rerank_place, all_rerank_labels)
 
-        return {"normal_loss": normal_loss}
+        return {"normal_loss": normal_loss,
+                "normal_loss_in_rerank_place": normal_loss_in_rerank_place}
         
     
 class rerankGPT2LMHeadModel_stage1_all_tokens_stage2_all_tokens(GPT2LMHeadModel):
